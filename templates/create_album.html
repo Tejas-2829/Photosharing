@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Album | {{ room.name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-3">
+    <div class="col-md-7">
+        <div class="card border-0 bg-dark shadow">
+            <div class="card-body p-4">
+                <h2 class="mb-4">Create Album</h2>
+                
+                <form method="POST" action="{{ url_for('create_album', room_id=room.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Album Name</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i data-feather="folder"></i></span>
+                            <input type="text" class="form-control" id="name" name="name" required placeholder="Enter a name for your album">
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Create Album</button>
+                        <a href="{{ url_for('room', room_id=room.id) }}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card border-0 bg-dark shadow-sm mt-4">
+            <div class="card-body p-4">
+                <h5 class="mb-3">Album Features</h5>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3 bg-primary bg-opacity-10 p-2 rounded-circle">
+                                <i data-feather="image" class="text-primary"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Photo Organization</h6>
+                                <p class="text-muted small mb-0">Group related photos together</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3 bg-primary bg-opacity-10 p-2 rounded-circle">
+                                <i data-feather="download" class="text-primary"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Bulk Download</h6>
+                                <p class="text-muted small mb-0">Download all photos in an album at once</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info mt-3 mb-0" role="alert">
+                    <div class="d-flex">
+                        <div class="me-3">
+                            <i data-feather="info" class="text-info"></i>
+                        </div>
+                        <div>
+                            <h6 class="alert-heading">Auto-Generated Albums</h6>
+                            <p class="mb-0">
+                                Face recognition also creates automatic albums based on detected faces in your photos.
+                                These are marked as "Auto-Generated" and are updated as you upload more photos.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        feather.replace();
+    });
+</script>
+{% endblock %}

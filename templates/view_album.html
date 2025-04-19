@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ album.name }} | {{ room.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">{{ album.name }}</h1>
+        <p class="text-muted">
+            <a href="{{ url_for('room', room_id=room.id) }}" class="text-decoration-none">
+                <i data-feather="folder" class="me-1"></i> {{ room.name }}
+            </a>
+            <span class="ms-2">{{ photos|length }} photos</span>
+        </p>
+    </div>
+    <div class="d-flex">
+        <a href="{{ url_for('room', room_id=room.id) }}" class="btn btn-outline-secondary">
+            <i data-feather="arrow-left" class="me-1"></i> Back to Room
+        </a>
+    </div>
+</div>
+
+{% if photos %}
+<div class="photo-grid">
+    {% for photo in photos %}
+    <div class="photo-card card border-0 shadow-sm">
+        <a href="{{ url_for('view_photo', photo_id=photo.id) }}" class="card-img-top photo-img-link">
+            <img src="{{ url_for('static', filename='uploads/' + photo.room_id|string + '/' + photo.filename) }}" 
+                 class="card-img-top photo-img" 
+                 alt="{{ photo.original_filename }}">
+        </a>
+        <div class="card-body p-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <small class="text-muted">{{ photo.uploaded_at.strftime('%b %d, %Y') }}</small>
+                <div>
+                    <a href="{{ url_for('download_photo', photo_id=photo.id) }}" class="btn btn-sm btn-outline-primary">
+                        <i data-feather="download" style="width: 14px; height: 14px;"></i>
+                    </a>
+                </div>
+            </div>
+            {% if photo.description %}
+            <p class="card-text small mb-2">{{ photo.description|truncate(50) }}</p>
+            {% endif %}
+            <div class="photo-tags">
+                {% for tag in photo.tags %}
+                <span class="photo-tag">{{ tag.tag_name }}</span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-5">
+    <div class="mb-3">
+        <i data-feather="image" style="width: 64px; height: 64px;" class="text-muted"></i>
+    </div>
+    <h4 class="mb-3">No Photos in This Album</h4>
+    <p class="text-muted mb-4">This album is empty. Add photos to this album from the room view.</p>
+    <a href="{{ url_for('room', room_id=room.id) }}" class="btn btn-primary">
+        <i data-feather="arrow-left" class="me-1"></i> Return to Room
+    </a>
+</div>
+{% endif %}
+
+{% if album.is_auto_generated %}
+<div class="card border-0 bg-dark shadow-sm mt-4">
+    <div class="card-body p-4">
+        <div class="d-flex">
+            <div class="me-3">
+                <i data-feather="info" class="text-info"></i>
+            </div>
+            <div>
+                <h5>Auto-Generated Album</h5>
+                <p class="mb-0">
+                    This album was automatically created by the face recognition system. 
+                    Photos with the tag "{{ album.name }}" are automatically added to this album.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        feather.replace();
+    });
+</script>
+{% endblock %}

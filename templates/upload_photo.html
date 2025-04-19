@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+
+{% block title %}Upload Photos | {{ room.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dropzone@5.9.3/dist/min/dropzone.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Upload Photos</h1>
+        <p class="text-muted">Room: {{ room.name }}</p>
+    </div>
+    <a href="{{ url_for('room', room_id=room.id) }}" class="btn btn-outline-secondary">
+        <i data-feather="arrow-left" class="me-1"></i> Back to Room
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card border-0 bg-dark shadow mb-4">
+            <div class="card-body p-4">
+                <form action="{{ url_for('upload_photo', room_id=room.id) }}" class="dropzone" id="photo-dropzone">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="dz-message" data-dz-message>
+                        <div class="mb-3">
+                            <i data-feather="upload-cloud" style="width: 64px; height: 64px;"></i>
+                        </div>
+                        <h4>Drop files here or click to upload</h4>
+                        <p class="text-muted">Upload photos to share with room members</p>
+                    </div>
+                </form>
+                
+                <div class="mt-4">
+                    <div class="form-group">
+                        <label for="photo-description" class="form-label">Description (optional)</label>
+                        <textarea id="photo-description" class="form-control" rows="2" placeholder="Add a description for all uploaded photos"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="alert alert-info" role="alert">
+            <div class="d-flex">
+                <div class="me-3">
+                    <i data-feather="info" class="text-info"></i>
+                </div>
+                <div>
+                    <h5 class="alert-heading">Face Recognition</h5>
+                    <p class="mb-0">
+                        {% if room.face_recognition_enabled %}
+                        Face recognition is enabled for this room. Uploaded photos will be automatically analyzed and tagged.
+                        {% else %}
+                        Face recognition is disabled for this room. You can manually tag people in photos after uploading.
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card border-0 bg-dark shadow mb-4">
+            <div class="card-header bg-dark">
+                <h5 class="mb-0">Upload Tips</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li class="mb-3">
+                        <div class="d-flex">
+                            <div class="me-3 text-primary">
+                                <i data-feather="image"></i>
+                            </div>
+                            <div>
+                                <strong>Supported formats</strong>
+                                <p class="text-muted small mb-0">JPG, PNG, and GIF files are supported</p>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="mb-3">
+                        <div class="d-flex">
+                            <div class="me-3 text-primary">
+                                <i data-feather="file"></i>
+                            </div>
+                            <div>
+                                <strong>File size</strong>
+                                <p class="text-muted small mb-0">Maximum 16MB per file</p>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="mb-3">
+                        <div class="d-flex">
+                            <div class="me-3 text-primary">
+                                <i data-feather="upload"></i>
+                            </div>
+                            <div>
+                                <strong>Bulk upload</strong>
+                                <p class="text-muted small mb-0">Select multiple files or drag & drop many at once</p>
+                            </div>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="d-flex">
+                            <div class="me-3 text-primary">
+                                <i data-feather="users"></i>
+                            </div>
+                            <div>
+                                <strong>Privacy</strong>
+                                <p class="text-muted small mb-0">Photos will only be visible to room members</p>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/dropzone@5.9.3/dist/min/dropzone.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        feather.replace();
+        
+        Dropzone.autoDiscover = false;
+        
+        // Get CSRF token
+        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+        
+        // Initialize Dropzone
+        const myDropzone = new Dropzone("#photo-dropzone", {
+            url: "{{ url_for('upload_photo', room_id=room.id) }}",
+            paramName: "photo",
+            maxFilesize: 16, // MB
+            acceptedFiles: "image/*",
+            addRemoveLinks: true,
+            headers: {
+                'X-CSRF-TOKEN': csrfToken
+            },
+            init: function() {
+                this.on("sending", function(file, xhr, formData) {
+                    // Include CSRF token in the form data
+                    formData.append("csrf_token", csrfToken);
+                    
+                    // Include description if available
+                    const description = document.getElementById('photo-description');
+                    if (description && description.value) {
+                        formData.append("description", description.value);
+                    }
+                });
+                
+                this.on("success", function(file, response) {
+                    file.previewElement.classList.add("dz-success");
+                });
+                
+                this.on("error", function(file, errorMessage) {
+                    file.previewElement.classList.add("dz-error");
+                    
+                    // Display the error message
+                    let errorDisplay = file.previewElement.querySelector(".dz-error-message");
+                    if (errorDisplay) {
+                        errorDisplay.textContent = errorMessage;
+                    }
+                });
+                
+                this.on("queuecomplete", function() {
+                    // Redirect to room page after all uploads are complete
+                    setTimeout(() => {
+                        window.location.href = "{{ url_for('room', room_id=room.id) }}";
+                    }, 1500);
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}

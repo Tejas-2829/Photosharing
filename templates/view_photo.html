@@ -1,0 +1,330 @@
+{% extends 'base.html' %}
+
+{% block title %}Photo | {{ photo.original_filename }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Photo Details</h1>
+        <p class="text-muted">
+            <a href="{{ url_for('room', room_id=photo.room_id) }}" class="text-decoration-none">
+                <i data-feather="folder" class="me-1"></i> {{ room.name }}
+            </a>
+        </p>
+    </div>
+    <div class="d-flex">
+        <a href="{{ url_for('download_photo', photo_id=photo.id) }}" class="btn btn-outline-primary me-2">
+            <i data-feather="download" class="me-1"></i> Download
+        </a>
+        <a href="{{ url_for('room', room_id=photo.room_id) }}" class="btn btn-outline-secondary">
+            <i data-feather="arrow-left" class="me-1"></i> Back to Room
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card border-0 bg-dark shadow mb-4">
+            <div class="card-body p-4">
+                <div class="photo-container position-relative mb-3">
+                    <img src="{{ url_for('static', filename='uploads/' + photo.room_id|string + '/' + photo.filename) }}" 
+                         class="img-fluid rounded" alt="{{ photo.original_filename }}">
+                    
+                    <!-- Tag boxes will be displayed here via JavaScript -->
+                </div>
+                
+                {% if photo.description %}
+                <div class="mb-3">
+                    <h5>Description</h5>
+                    <p class="mb-0">{{ photo.description }}</p>
+                </div>
+                {% endif %}
+                
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div class="text-muted small">
+                        <i data-feather="calendar" class="me-1"></i> 
+                        Uploaded on {{ photo.uploaded_at.strftime('%b %d, %Y at %I:%M %p') }}
+                    </div>
+                    <div class="text-muted small">
+                        <i data-feather="download" class="me-1"></i> 
+                        {{ photo.download_count }} downloads
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Tags Section -->
+        <div class="card border-0 bg-dark shadow mb-4">
+            <div class="card-header bg-dark d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Tags</h5>
+                <button id="tag-photo-button" class="btn btn-sm btn-outline-primary">
+                    <i data-feather="tag" class="me-1"></i> Tag Photo
+                </button>
+            </div>
+            <div class="card-body">
+                {% if tags %}
+                <div class="mb-3">
+                    {% for tag in tags %}
+                    <div class="photo-tag d-inline-flex align-items-center me-2 mb-2 photo-tag"
+                         {% if tag.box_coordinates %}data-coordinates="{{ tag.box_coordinates }}" data-name="{{ tag.tag_name }}"{% endif %}>
+                        {{ tag.tag_name }}
+                        {% if tag.is_manual %}
+                        <span class="badge bg-info ms-1 small">Manual</span>
+                        {% else %}
+                        <span class="badge bg-secondary ms-1 small">{{ (tag.confidence * 100)|int }}%</span>
+                        {% endif %}
+                        
+                        <a href="{{ url_for('remove_tag', photo_id=photo.id, tag_id=tag.id) }}" 
+                           class="ms-2 text-danger" title="Remove tag">
+                            <i data-feather="x" style="width: 14px; height: 14px;"></i>
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-3 text-muted">
+                    <i data-feather="tag" class="mb-2"></i>
+                    <p class="mb-0">No tags yet</p>
+                </div>
+                {% endif %}
+                
+                <!-- Tag Form (Hidden initially) -->
+                <form id="tag-form" class="d-none mt-3" action="{{ url_for('tag_photo', photo_id=photo.id) }}" method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="x" id="x">
+                    <input type="hidden" name="y" id="y">
+                    <input type="hidden" name="width" id="width">
+                    <input type="hidden" name="height" id="height">
+                    
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control" id="tag_name" name="tag_name" 
+                               placeholder="Enter tag name" required>
+                        <button type="submit" class="btn btn-primary">Add Tag</button>
+                        <button type="button" id="cancel-tag-button" class="btn btn-outline-secondary">Cancel</button>
+                    </div>
+                    <div class="form-text">
+                        Draw a box around a face in the photo, then enter a name for the tag
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Album Section -->
+        <div class="card border-0 bg-dark shadow mb-4">
+            <div class="card-header bg-dark">
+                <h5 class="mb-0">Album</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('move_to_album', photo_id=photo.id) }}" method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    
+                    <div class="mb-3">
+                        <label for="album_id" class="form-label">Choose Album</label>
+                        <div class="input-group">
+                            <select class="form-select" id="album_id" name="album_id">
+                                <option value="0" {% if not photo.album_id %}selected{% endif %}>No Album</option>
+                                {% for album in room.albums %}
+                                <option value="{{ album.id }}" {% if photo.album_id == album.id %}selected{% endif %}>
+                                    {{ album.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-outline-primary">Move</button>
+                        </div>
+                        <div class="form-text">
+                            <span id="selected-album-name">
+                                {% if photo.album %}{{ photo.album.name }}{% else %}No Album{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Photo Information -->
+        <div class="card border-0 bg-dark shadow">
+            <div class="card-header bg-dark">
+                <h5 class="mb-0">Photo Information</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush bg-transparent">
+                    <li class="list-group-item bg-transparent d-flex justify-content-between px-0">
+                        <span>Filename</span>
+                        <span class="text-muted">{{ photo.original_filename }}</span>
+                    </li>
+                    <li class="list-group-item bg-transparent d-flex justify-content-between px-0">
+                        <span>Uploaded by</span>
+                        <span class="text-muted">{{ photo.user.username }}</span>
+                    </li>
+                    <li class="list-group-item bg-transparent d-flex justify-content-between px-0">
+                        <span>Upload date</span>
+                        <span class="text-muted">{{ photo.uploaded_at.strftime('%b %d, %Y') }}</span>
+                    </li>
+                    <li class="list-group-item bg-transparent d-flex justify-content-between px-0">
+                        <span>Downloads</span>
+                        <span class="text-muted">{{ photo.download_count }}</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/room.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        feather.replace();
+        
+        // Initialize photo tagging
+        const photoContainer = document.querySelector('.photo-container');
+        const tagForm = document.getElementById('tag-form');
+        
+        if (photoContainer && tagForm) {
+            let tagBox = null;
+            let startX, startY;
+            let currentX, currentY;
+            let isDrawing = false;
+            
+            // Display existing tags
+            document.querySelectorAll('.photo-tag[data-coordinates]').forEach(tag => {
+                try {
+                    const coordinates = JSON.parse(tag.getAttribute('data-coordinates'));
+                    if (!coordinates) return;
+                    
+                    const photoWidth = photoContainer.offsetWidth;
+                    const photoHeight = photoContainer.offsetHeight;
+                    
+                    const tagBox = document.createElement('div');
+                    tagBox.className = 'tag-box';
+                    tagBox.style.left = `${coordinates.x * photoWidth}px`;
+                    tagBox.style.top = `${coordinates.y * photoHeight}px`;
+                    tagBox.style.width = `${coordinates.width * photoWidth}px`;
+                    tagBox.style.height = `${coordinates.height * photoHeight}px`;
+                    tagBox.title = tag.getAttribute('data-name');
+                    
+                    photoContainer.appendChild(tagBox);
+                } catch (e) {
+                    console.error('Error parsing tag coordinates:', e);
+                }
+            });
+            
+            // Show tag form when "Tag Photo" button is clicked
+            const tagPhotoButton = document.getElementById('tag-photo-button');
+            if (tagPhotoButton) {
+                tagPhotoButton.addEventListener('click', function() {
+                    tagForm.classList.toggle('d-none');
+                    this.classList.toggle('active');
+                    
+                    if (tagForm.classList.contains('d-none')) {
+                        // If hiding the form, also remove any in-progress tag box
+                        if (tagBox && tagBox.parentNode) {
+                            tagBox.parentNode.removeChild(tagBox);
+                        }
+                        tagBox = null;
+                    }
+                });
+            }
+            
+            // Create tag box on mousedown
+            photoContainer.addEventListener('mousedown', function(e) {
+                // Only allow tagging if the form is visible
+                if (tagForm.classList.contains('d-none')) return;
+                
+                const rect = photoContainer.getBoundingClientRect();
+                startX = e.clientX - rect.left;
+                startY = e.clientY - rect.top;
+                
+                tagBox = document.createElement('div');
+                tagBox.className = 'tag-box';
+                tagBox.style.left = `${startX}px`;
+                tagBox.style.top = `${startY}px`;
+                tagBox.style.width = '0';
+                tagBox.style.height = '0';
+                
+                photoContainer.appendChild(tagBox);
+                isDrawing = true;
+                
+                // Prevent text selection
+                e.preventDefault();
+            });
+            
+            // Resize tag box on mousemove
+            document.addEventListener('mousemove', function(e) {
+                if (!isDrawing || !tagBox) return;
+                
+                const rect = photoContainer.getBoundingClientRect();
+                currentX = e.clientX - rect.left;
+                currentY = e.clientY - rect.top;
+                
+                // Ensure coordinates are within the container
+                currentX = Math.max(0, Math.min(currentX, rect.width));
+                currentY = Math.max(0, Math.min(currentY, rect.height));
+                
+                // Calculate width and height
+                const width = Math.abs(currentX - startX);
+                const height = Math.abs(currentY - startY);
+                
+                // Calculate top-left position
+                const left = Math.min(startX, currentX);
+                const top = Math.min(startY, currentY);
+                
+                // Update tag box
+                tagBox.style.left = `${left}px`;
+                tagBox.style.top = `${top}px`;
+                tagBox.style.width = `${width}px`;
+                tagBox.style.height = `${height}px`;
+                
+                // Update form inputs
+                document.getElementById('x').value = left / rect.width;
+                document.getElementById('y').value = top / rect.height;
+                document.getElementById('width').value = width / rect.width;
+                document.getElementById('height').value = height / rect.height;
+            });
+            
+            // Finalize tag box on mouseup
+            document.addEventListener('mouseup', function() {
+                if (isDrawing) {
+                    isDrawing = false;
+                    
+                    // Show the tag input if we have a reasonable size box
+                    const width = parseFloat(tagBox.style.width);
+                    const height = parseFloat(tagBox.style.height);
+                    
+                    if (width > 20 && height > 20) {
+                        document.getElementById('tag_name').focus();
+                    } else {
+                        // Remove small tag boxes
+                        if (tagBox && tagBox.parentNode) {
+                            tagBox.parentNode.removeChild(tagBox);
+                        }
+                        tagBox = null;
+                    }
+                }
+            });
+            
+            // Cancel tagging operation
+            document.getElementById('cancel-tag-button').addEventListener('click', function() {
+                if (tagBox && tagBox.parentNode) {
+                    tagBox.parentNode.removeChild(tagBox);
+                }
+                tagBox = null;
+                tagForm.classList.add('d-none');
+                tagPhotoButton.classList.remove('active');
+            });
+        }
+        
+        // Initialize album selection
+        const albumSelect = document.getElementById('album_id');
+        if (albumSelect) {
+            albumSelect.addEventListener('change', function() {
+                const selectedAlbum = this.options[this.selectedIndex].text;
+                document.getElementById('selected-album-name').textContent = selectedAlbum;
+            });
+        }
+    });
+</script>
+{% endblock %}
