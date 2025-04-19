@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}Room Access | Photo Sharing App{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6 col-lg-5">
+        <div class="card border-0 bg-dark shadow">
+            <div class="card-body p-4 text-center">
+                <div class="mb-4">
+                    <i data-feather="lock" style="width: 64px; height: 64px;" class="text-primary"></i>
+                </div>
+                <h2 class="mb-2">Private Room</h2>
+                <p class="text-muted mb-4">Enter the access code to view photos in "{{ room.name }}"</p>
+                
+                <form method="POST" action="{{ url_for('room_access', room_id=room.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    
+                    <div class="mb-4">
+                        <div class="input-group">
+                            <span class="input-group-text"><i data-feather="key"></i></span>
+                            <input type="text" class="form-control form-control-lg text-center" 
+                                   id="access_code" name="access_code" required
+                                   placeholder="Enter access code" autofocus>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">Access Room</button>
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+                
+                <div class="mt-4">
+                    <p class="text-muted small">
+                        <i data-feather="info" class="me-1"></i>
+                        Need an access code? Ask the room creator.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card border-0 bg-dark shadow-sm mt-4">
+            <div class="card-body p-3">
+                <h5 class="mb-3">What is an access code?</h5>
+                <p class="text-muted small mb-0">
+                    Access codes protect private photo rooms. Only people with the code can view the photos. 
+                    This allows the room creator to securely share photos without requiring viewers to register for an account.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        feather.replace();
+    });
+</script>
+{% endblock %}

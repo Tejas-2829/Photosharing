@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+
+{% block title %}Join Room | Photo Sharing App{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-3">
+    <div class="col-md-8">
+        <div class="card border-0 bg-dark shadow">
+            <div class="card-body p-4">
+                <h2 class="mb-4">Join a Photo Room</h2>
+                
+                <form method="POST" action="{{ url_for('join_room') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    
+                    <div class="mb-4">
+                        <label for="access_code" class="form-label">Enter Room Access Code</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i data-feather="key"></i></span>
+                            <input type="text" class="form-control" id="access_code" name="access_code" required 
+                                   placeholder="Enter the access code provided by the room creator">
+                            <button class="btn btn-primary" type="submit">
+                                <i data-feather="log-in" class="me-1"></i> Join Room
+                            </button>
+                        </div>
+                        <div class="form-text">
+                            Private rooms require an access code to join. Get this from the room creator.
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        {% if public_rooms %}
+        <div class="card border-0 bg-dark shadow-sm mt-4">
+            <div class="card-header bg-dark">
+                <h5 class="mb-0">
+                    <i data-feather="globe" class="me-2"></i> Public Rooms
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Description</th>
+                                <th>Created</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for room in public_rooms %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3">
+                                            <i data-feather="folder" class="text-primary"></i>
+                                        </div>
+                                        <div>{{ room.name }}</div>
+                                    </div>
+                                </td>
+                                <td>{{ room.description|truncate(60) if room.description else "No description" }}</td>
+                                <td>{{ room.created_at.strftime('%b %d, %Y') }}</td>
+                                <td>
+                                    <a href="{{ url_for('room', room_id=room.id) }}" class="btn btn-sm btn-primary">
+                                        <i data-feather="log-in" class="me-1" style="width: 14px; height: 14px;"></i> Join
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="card border-0 bg-dark shadow-sm mt-4">
+            <div class="card-body p-4">
+                <h5 class="mb-3">How to Join a Room</h5>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex align-items-start">
+                            <div class="bg-primary bg-opacity-10 p-2 rounded-circle me-3">
+                                <i data-feather="key" class="text-primary"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Private Rooms</h6>
+                                <p class="text-muted small mb-0">
+                                    Require an access code from the room creator. Enter it in the form above.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex align-items-start">
+                            <div class="bg-primary bg-opacity-10 p-2 rounded-circle me-3">
+                                <i data-feather="globe" class="text-primary"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Public Rooms</h6>
+                                <p class="text-muted small mb-0">
+                                    Can be joined by anyone. Browse the list below and click "Join".
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <div class="d-flex align-items-start">
+                        <div class="bg-primary bg-opacity-10 p-2 rounded-circle me-3">
+                            <i data-feather="link" class="text-primary"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-1">Shared Links</h6>
+                            <p class="text-muted small mb-0">
+                                If someone shared a direct link with you, simply click on it to access the room.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        feather.replace();
+    });
+</script>
+{% endblock %}

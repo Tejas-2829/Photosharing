@@ -1,0 +1,258 @@
+/**
+ * Custom CSS for the Photo Sharing Application
+ * This file contains additional styles beyond the Bootstrap defaults
+ */
+
+/* General Styles */
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.content {
+    flex: 1;
+}
+
+footer {
+    margin-top: auto;
+}
+
+/* Photo Display */
+.photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+.photo-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+}
+
+.photo-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.photo-img {
+    height: 200px;
+    object-fit: cover;
+    width: 100%;
+    transition: transform 0.3s ease;
+}
+
+.photo-card:hover .photo-img {
+    transform: scale(1.05);
+}
+
+/* Photo Tags */
+.tag-box {
+    position: absolute;
+    border: 2px solid var(--bs-primary);
+    background-color: rgba(var(--bs-primary-rgb), 0.2);
+    pointer-events: none;
+    z-index: 10;
+}
+
+.photo-tag {
+    display: inline-block;
+    margin: 0.2rem;
+    padding: 0.2rem 0.5rem;
+    background-color: var(--bs-primary-bg-subtle);
+    border-radius: 1rem;
+    font-size: 0.8rem;
+    transition: background-color 0.3s ease;
+}
+
+.photo-tag:hover {
+    background-color: var(--bs-primary-bg);
+}
+
+/* Album Display */
+.album-card {
+    position: relative;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    height: 100%;
+}
+
+.album-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.album-cover {
+    position: relative;
+    overflow: hidden;
+    height: 150px;
+}
+
+.album-title {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0,0,0,0.7);
+    padding: 5px 10px;
+    transition: background-color 0.3s ease;
+}
+
+.album-card:hover .album-title {
+    background: rgba(var(--bs-primary-rgb), 0.7);
+}
+
+/* Room Cards */
+.room-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    height: 100%;
+}
+
+.room-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+/* Analytics Cards */
+.stats-card {
+    transition: all 0.3s ease;
+    border-radius: 0.5rem;
+    text-align: center;
+    padding: 1rem;
+}
+
+.stats-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.stats-value {
+    font-size: 2rem;
+    font-weight: bold;
+}
+
+/* Face Recognition Settings */
+.algorithm-card {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.algorithm-card:hover {
+    background-color: var(--bs-primary-bg-subtle);
+}
+
+.algorithm-card.selected {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.25);
+}
+
+/* Shareable Links */
+.link-card {
+    transition: all 0.3s ease;
+    border-left: 4px solid var(--bs-info);
+    margin-bottom: 1rem;
+}
+
+.link-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.active-link {
+    border-left-color: var(--bs-success);
+}
+
+.expired-link {
+    border-left-color: var(--bs-danger);
+    opacity: 0.7;
+}
+
+.copy-link-input {
+    background-color: var(--bs-dark);
+    color: var(--bs-light);
+    border-color: var(--bs-border-color);
+}
+
+/* Dropzone Customization */
+.dropzone {
+    border: 2px dashed var(--bs-primary);
+    border-radius: 5px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    background: var(--bs-dark);
+    transition: all 0.3s ease;
+}
+
+.dropzone:hover {
+    background-color: var(--bs-primary-bg-subtle);
+}
+
+.dropzone .dz-preview .dz-image {
+    border-radius: 5px;
+}
+
+/* Chart Container */
+.chart-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+    transition: opacity 0.3s ease;
+}
+
+/* Loading Indicator */
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 30px;
+    height: 30px;
+    border: 3px solid rgba(var(--bs-primary-rgb), 0.3);
+    border-radius: 50%;
+    border-top-color: var(--bs-primary);
+    animation: spinner 1s ease-in-out infinite;
+    transform: translate(-50%, -50%);
+}
+
+@keyframes spinner {
+    to {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}
+
+/* Guest Access Indicator */
+.guest-badge {
+    display: inline-block;
+    background-color: var(--bs-warning-bg-subtle);
+    color: var(--bs-warning-text);
+    border-radius: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+/* QR Code Container */
+.qr-code-container {
+    background-color: white;
+    padding: 10px;
+    border-radius: 5px;
+    display: inline-block;
+}
+
+/* Responsive adjustments for small screens */
+@media (max-width: 768px) {
+    .photo-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
+    
+    .stats-card {
+        margin-bottom: 1rem;
+    }
+    
+    .chart-container {
+        height: 200px;
+    }
+}

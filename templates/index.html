@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block title %}Welcome | Photo Sharing App{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-3">
+    <div class="col-md-10">
+        <div class="card border-0 bg-dark shadow">
+            <div class="card-body p-5 text-center">
+                <h1 class="display-4 mb-4">Share Photos with Friends & Family</h1>
+                <p class="lead mb-4">
+                    Create private rooms, upload photos, and share them with anyone - no account required for viewers!
+                </p>
+                
+                {% if not session.get('user_id') %}
+                <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                    <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg px-4 me-md-2">Sign Up</a>
+                    <a href="{{ url_for('login') }}" class="btn btn-outline-secondary btn-lg px-4">Log In</a>
+                </div>
+                
+                <div class="mt-4">
+                    <p class="text-muted">
+                        <i data-feather="info" class="me-1"></i>
+                        Have a room access code or link? 
+                        <a href="{{ url_for('join_room') }}">Access your photos here</a>
+                    </p>
+                </div>
+                {% else %}
+                <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg px-4 me-md-2">Go to Dashboard</a>
+                    <a href="{{ url_for('create_room') }}" class="btn btn-outline-secondary btn-lg px-4">Create Room</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 border-0 bg-dark shadow-sm">
+            <div class="card-body p-4 text-center">
+                <div class="feature-icon mb-3">
+                    <i data-feather="users" class="text-primary" style="width: 48px; height: 48px;"></i>
+                </div>
+                <h3>Guest Access</h3>
+                <p>Share your photos with anyone using secure access codes or expiring links - no registration required.</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 border-0 bg-dark shadow-sm">
+            <div class="card-body p-4 text-center">
+                <div class="feature-icon mb-3">
+                    <i data-feather="tag" class="text-primary" style="width: 48px; height: 48px;"></i>
+                </div>
+                <h3>Face Recognition</h3>
+                <p>Automatically organize photos by recognizing faces and grouping them into albums for easy browsing.</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 border-0 bg-dark shadow-sm">
+            <div class="card-body p-4 text-center">
+                <div class="feature-icon mb-3">
+                    <i data-feather="bar-chart-2" class="text-primary" style="width: 48px; height: 48px;"></i>
+                </div>
+                <h3>Analytics</h3>
+                <p>Track room visits and photo downloads with detailed analytics to see how your photos are being viewed.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-3 mb-5">
+    <div class="col-md-12">
+        <div class="card border-0 bg-dark shadow-sm">
+            <div class="card-body p-4">
+                <h3 class="mb-3">How It Works</h3>
+                <div class="row">
+                    <div class="col-md-3 text-center mb-3">
+                        <div class="p-3">
+                            <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex p-3 mb-3">
+                                <i data-feather="user-plus" class="text-primary"></i>
+                            </div>
+                            <h5>1. Create Account</h5>
+                            <p class="text-muted small">Sign up to start creating photo rooms</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 text-center mb-3">
+                        <div class="p-3">
+                            <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex p-3 mb-3">
+                                <i data-feather="folder-plus" class="text-primary"></i>
+                            </div>
+                            <h5>2. Create a Room</h5>
+                            <p class="text-muted small">Set up a private or public room for your photos</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 text-center mb-3">
+                        <div class="p-3">
+                            <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex p-3 mb-3">
+                                <i data-feather="upload" class="text-primary"></i>
+                            </div>
+                            <h5>3. Upload Photos</h5>
+                            <p class="text-muted small">Add your photos to the room</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 text-center mb-3">
+                        <div class="p-3">
+                            <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex p-3 mb-3">
+                                <i data-feather="share-2" class="text-primary"></i>
+                            </div>
+                            <h5>4. Share Access</h5>
+                            <p class="text-muted small">Send access code or link to friends & family</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        feather.replace();
+    });
+</script>
+{% endblock %}

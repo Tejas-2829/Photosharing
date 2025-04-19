@@ -1,0 +1,380 @@
+{% extends 'base.html' %}
+
+{% block title %}Share Room - Photo Sharing{% endblock %}
+
+{% block styles %}
+<style>
+    .share-card {
+        border-left: 5px solid var(--bs-primary);
+    }
+    .copy-link-input {
+        background-color: var(--bs-dark);
+        color: var(--bs-light);
+        border-color: var(--bs-border-color);
+    }
+    .expiration-selector {
+        padding: 1rem;
+        border-radius: 0.5rem;
+        background-color: var(--bs-dark);
+        margin-top: 1rem;
+    }
+    .link-card {
+        transition: all 0.3s ease;
+        border-left: 4px solid var(--bs-info);
+    }
+    .link-card:hover {
+        transform: translateY(-5px);
+    }
+    .link-expires {
+        font-size: 0.85rem;
+    }
+    .active-link {
+        border-left-color: var(--bs-success);
+    }
+    .expired-link {
+        border-left-color: var(--bs-danger);
+        opacity: 0.7;
+    }
+    .qr-code-container {
+        width: 200px;
+        height: 200px;
+        margin: 0 auto;
+        background-color: white;
+        padding: 10px;
+        border-radius: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Share: {{ room.name }}</h1>
+        <a href="{{ url_for('room', room_id=room.id) }}" class="btn btn-outline-secondary">
+            <i data-feather="arrow-left" class="me-1"></i> Back to Room
+        </a>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-7 mb-4">
+            <!-- Create New Link -->
+            <div class="card share-card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Create Shareable Link</h5>
+                </div>
+                <div class="card-body">
+                    <p>Create a shareable link that allows anyone to access this room without needing to register.</p>
+                    
+                    <form method="POST" action="{{ url_for('share_room', room_id=room.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="expiration-selector">
+                            <label class="form-label fw-bold">Link Expiration</label>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="expiration_days" id="never_expires" value="" checked>
+                                        <label class="form-check-label" for="never_expires">
+                                            Never expires
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="expiration_days" id="expires_7" value="7">
+                                        <label class="form-check-label" for="expires_7">
+                                            7 days
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="expiration_days" id="expires_30" value="30">
+                                        <label class="form-check-label" for="expires_30">
+                                            30 days
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="expiration_days" id="expires_1" value="1">
+                                        <label class="form-check-label" for="expires_1">
+                                            24 hours
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="expiration_days" id="expires_3" value="3">
+                                        <label class="form-check-label" for="expires_3">
+                                            3 days
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="expiration_days" id="expires_90" value="90">
+                                        <label class="form-check-label" for="expires_90">
+                                            90 days
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i data-feather="link" class="me-1"></i> Generate New Link
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Active Links -->
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Active Links</h5>
+                </div>
+                <div class="card-body">
+                    {% if active_links %}
+                        <div class="list-group">
+                            {% for link in active_links %}
+                                <div class="list-group-item link-card {{ 'expired-link' if link.is_expired() else 'active-link' }} mb-2">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <div class="mb-2">
+                                                {% if link.is_expired() %}
+                                                    <span class="badge bg-danger me-1">Expired</span>
+                                                {% else %}
+                                                    <span class="badge bg-success me-1">Active</span>
+                                                {% endif %}
+                                                <small class="text-muted">Created: {{ link.created_at.strftime('%Y-%m-%d') }}</small>
+                                            </div>
+                                            <div class="input-group mb-2">
+                                                <input type="text" class="form-control copy-link-input" value="{{ request.url_root }}link/{{ link.token }}" readonly>
+                                                <button class="btn btn-outline-primary copy-link" type="button" data-link="{{ request.url_root }}link/{{ link.token }}">
+                                                    <i data-feather="copy"></i>
+                                                </button>
+                                            </div>
+                                            <div class="link-expires text-muted">
+                                                <i data-feather="clock" class="me-1" style="width: 14px; height: 14px;"></i>
+                                                {% if link.expires_at %}
+                                                    Expires: {{ link.expires_at.strftime('%Y-%m-%d') }}
+                                                {% else %}
+                                                    Never expires
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="ms-3 text-end">
+                                            <div class="mb-2">
+                                                <span class="badge bg-info">{{ link.access_count }} accesses</span>
+                                            </div>
+                                            <a href="{{ url_for('deactivate_link', link_id=link.id) }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to deactivate this link?')">
+                                                <i data-feather="trash-2" class="me-1"></i> Deactivate
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i data-feather="info" class="me-2"></i>
+                            No active shareable links. Generate a new link above to share your room.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-5 mb-4">
+            <!-- QR Code for Latest Link -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">QR Code</h5>
+                </div>
+                <div class="card-body text-center">
+                    {% if active_links %}
+                        <p>Scan this QR code to access the room:</p>
+                        <div class="qr-code-container mb-3" id="qrcode"></div>
+                        <div class="btn-group">
+                            <button class="btn btn-outline-primary" id="downloadQR">
+                                <i data-feather="download" class="me-1"></i> Download QR Code
+                            </button>
+                            <button class="btn btn-outline-info" id="printQR">
+                                <i data-feather="printer" class="me-1"></i> Print
+                            </button>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i data-feather="info" class="me-2"></i>
+                            Generate a shareable link to get a QR code.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Sharing Tips -->
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Sharing Tips</h5>
+                </div>
+                <div class="card-body">
+                    <div class="accordion" id="sharingTipsAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
+                                    What are shareable links?
+                                </button>
+                            </h2>
+                            <div id="collapseOne" class="accordion-collapse collapse" data-bs-parent="#sharingTipsAccordion">
+                                <div class="accordion-body">
+                                    <p>Shareable links provide a simple way to give access to your room without requiring recipients to have an account or enter an access code. Anyone with the link can view the photos in the room.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                                    How do I share the link?
+                                </button>
+                            </h2>
+                            <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#sharingTipsAccordion">
+                                <div class="accordion-body">
+                                    <p>You can:</p>
+                                    <ul>
+                                        <li>Copy the link and send it via email, message, or social media</li>
+                                        <li>Share the QR code for easy mobile access</li>
+                                        <li>Print the QR code for physical distribution</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                                    Link security and expiration
+                                </button>
+                            </h2>
+                            <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#sharingTipsAccordion">
+                                <div class="accordion-body">
+                                    <p>For better security:</p>
+                                    <ul>
+                                        <li>Set an expiration date for temporary access</li>
+                                        <li>Deactivate links when they're no longer needed</li>
+                                        <li>Create separate links for different groups of people to track usage</li>
+                                        <li>Monitor access through the analytics dashboard</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize copy buttons
+        document.querySelectorAll('.copy-link').forEach(button => {
+            button.addEventListener('click', function() {
+                const link = this.getAttribute('data-link');
+                navigator.clipboard.writeText(link).then(() => {
+                    // Change button icon and text temporarily
+                    const originalHTML = this.innerHTML;
+                    this.innerHTML = '<i data-feather="check"></i>';
+                    feather.replace();
+                    
+                    setTimeout(() => {
+                        this.innerHTML = originalHTML;
+                        feather.replace();
+                    }, 2000);
+                });
+            });
+        });
+        
+        // Initialize QR code if there are active links
+        {% if active_links %}
+            // Use the most recent active link
+            const mostRecentLink = "{{ request.url_root }}link/{{ active_links[0].token }}";
+            
+            // Generate QR code
+            const qrcode = new QRCode(document.getElementById("qrcode"), {
+                text: mostRecentLink,
+                width: 180,
+                height: 180,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+            
+            // Handle QR code download
+            document.getElementById('downloadQR').addEventListener('click', function() {
+                // Get the data URL from the canvas
+                const canvas = document.querySelector('#qrcode canvas');
+                const link = document.createElement('a');
+                link.download = 'room-qrcode.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+            
+            // Handle QR code printing
+            document.getElementById('printQR').addEventListener('click', function() {
+                const canvas = document.querySelector('#qrcode canvas');
+                const dataUrl = canvas.toDataURL('image/png');
+                
+                const printWindow = window.open('', '_blank');
+                printWindow.document.write(`
+                    <html>
+                        <head>
+                            <title>Room QR Code</title>
+                            <style>
+                                body { 
+                                    display: flex; 
+                                    flex-direction: column;
+                                    align-items: center;
+                                    justify-content: center;
+                                    height: 100vh;
+                                    font-family: Arial, sans-serif;
+                                }
+                                .qr-container {
+                                    text-align: center;
+                                    padding: 20px;
+                                    border: 1px solid #ccc;
+                                    border-radius: 5px;
+                                    background: white;
+                                }
+                                img { 
+                                    max-width: 300px; 
+                                    margin-bottom: 20px;
+                                }
+                                h2 { margin-bottom: 5px; }
+                                p { margin-top: 5px; color: #666; }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="qr-container">
+                                <h2>{{ room.name }}</h2>
+                                <p>Scan to view photos</p>
+                                <img src="${dataUrl}" alt="Room QR Code">
+                                <p><small>${mostRecentLink}</small></p>
+                            </div>
+                            <script>
+                                window.onload = function() { window.print(); }
+                            </script>
+                        </body>
+                    </html>
+                `);
+            });
+        {% endif %}
+    });
+</script>
+{% endblock %}

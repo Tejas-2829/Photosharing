@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Room | Photo Sharing App{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-3">
+    <div class="col-md-8">
+        <div class="card border-0 bg-dark shadow">
+            <div class="card-body p-4">
+                <h2 class="mb-4">Create a Photo Room</h2>
+                
+                <form method="POST" action="{{ url_for('create_room') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Room Name</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i data-feather="folder"></i></span>
+                            <input type="text" class="form-control" id="name" name="name" required placeholder="Enter a name for your room">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description (Optional)</label>
+                        <textarea class="form-control" id="description" name="description" rows="3" placeholder="Describe what this room is for..."></textarea>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label">Room Access</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="is_public" id="private" value="false" checked>
+                            <label class="form-check-label" for="private">
+                                <i data-feather="lock" class="me-1"></i> Private (access code required)
+                            </label>
+                            <div class="form-text">Only people with the access code can view photos</div>
+                        </div>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="radio" name="is_public" id="public" value="true">
+                            <label class="form-check-label" for="public">
+                                <i data-feather="globe" class="me-1"></i> Public
+                            </label>
+                            <div class="form-text">Anyone can view photos without an access code</div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Create Room</button>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card border-0 bg-dark shadow-sm mt-4">
+            <div class="card-body p-4">
+                <h5 class="mb-3">Room Features</h5>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3 bg-primary bg-opacity-10 p-2 rounded-circle">
+                                <i data-feather="users" class="text-primary"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Guest Access</h6>
+                                <p class="text-muted small mb-0">No registration needed for viewers</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3 bg-primary bg-opacity-10 p-2 rounded-circle">
+                                <i data-feather="tag" class="text-primary"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Face Recognition</h6>
+                                <p class="text-muted small mb-0">Automatic photo organization</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3 bg-primary bg-opacity-10 p-2 rounded-circle">
+                                <i data-feather="link" class="text-primary"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Shareable Links</h6>
+                                <p class="text-muted small mb-0">Create expiring access links</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        feather.replace();
+    });
+</script>
+{% endblock %}

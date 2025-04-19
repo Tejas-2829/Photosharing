@@ -1,0 +1,274 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ room.name }} | Photo Sharing App{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dropzone@5.9.3/dist/min/dropzone.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">{{ room.name }}</h1>
+        <p class="text-muted">{{ room.description }}</p>
+    </div>
+    <div class="d-flex">
+        {% if is_admin %}
+        <a href="{{ url_for('share_room', room_id=room.id) }}" class="btn btn-outline-info me-2">
+            <i data-feather="share-2" class="me-1"></i> Share
+        </a>
+        <a href="{{ url_for('room_analytics', room_id=room.id) }}" class="btn btn-outline-success me-2">
+            <i data-feather="bar-chart-2" class="me-1"></i> Analytics
+        </a>
+        {% endif %}
+        <a href="{{ url_for('upload_photo', room_id=room.id) }}" class="btn btn-primary">
+            <i data-feather="upload" class="me-1"></i> Upload Photos
+        </a>
+    </div>
+</div>
+
+<!-- Room access info -->
+{% if not room.is_public and room.access_code %}
+<div class="alert alert-info d-flex align-items-center mb-4">
+    <i data-feather="info" class="me-2"></i>
+    <div class="flex-grow-1">
+        <strong>Room Access Code:</strong> {{ room.access_code }}
+        <span class="ms-2 text-muted">(Share this code with people you want to access this room)</span>
+    </div>
+    <button class="btn btn-sm btn-outline-info ms-3" id="copy-code-btn" data-code="{{ room.access_code }}">
+        <i data-feather="copy" class="me-1"></i> Copy Code
+    </button>
+</div>
+{% endif %}
+
+<!-- Tabs for different views -->
+<ul class="nav nav-tabs mb-4" id="roomTab" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="photos-tab" data-bs-toggle="tab" data-bs-target="#photos" type="button" role="tab">
+            <i data-feather="image" class="me-1"></i> All Photos ({{ photos|length }})
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="albums-tab" data-bs-toggle="tab" data-bs-target="#albums" type="button" role="tab">
+            <i data-feather="folder" class="me-1"></i> Albums ({{ albums|length }})
+        </button>
+    </li>
+    {% if is_admin and room.face_recognition_enabled %}
+    <li class="nav-item ms-auto" role="presentation">
+        <a href="{{ url_for('process_all_photos', room_id=room.id) }}" class="nav-link text-info">
+            <i data-feather="refresh-cw" class="me-1"></i> Reprocess All Photos
+        </a>
+    </li>
+    {% endif %}
+    {% if is_admin %}
+    <li class="nav-item" role="presentation">
+        <a href="{{ url_for('toggle_face_recognition', room_id=room.id) }}" class="nav-link {% if room.face_recognition_enabled %}text-success{% else %}text-danger{% endif %}">
+            <i data-feather="tag" class="me-1"></i> Face Recognition: {% if room.face_recognition_enabled %}On{% else %}Off{% endif %}
+        </a>
+    </li>
+    {% endif %}
+</ul>
+
+<div class="tab-content" id="roomTabContent">
+    <!-- Photos Tab -->
+    <div class="tab-pane fade show active" id="photos" role="tabpanel">
+        {% if photos %}
+        <!-- Tag filter buttons -->
+        <div class="mb-4 tag-filters">
+            <div class="small text-muted mb-2">Filter by tags:</div>
+            {% set tags = [] %}
+            {% for photo in photos %}
+                {% for tag in photo.tags %}
+                    {% if tag.tag_name not in tags %}
+                        {% set tags = tags + [tag.tag_name] %}
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
+            
+            {% for tag in tags %}
+            <button class="btn btn-sm btn-outline-primary me-2 mb-2 tag-filter" data-tag="{{ tag }}">
+                {{ tag }}
+            </button>
+            {% endfor %}
+            
+            {% if tags %}
+            <button class="btn btn-sm btn-outline-secondary mb-2 clear-filters">
+                <i data-feather="x" style="width: 14px; height: 14px;"></i> Clear Filters
+            </button>
+            {% endif %}
+        </div>
+        
+        <div class="photo-grid">
+            {% for photo in photos %}
+            <div class="photo-card card border-0 shadow-sm" 
+                 data-tags="{% for tag in photo.tags %}{{ tag.tag_name }} {% endfor %}">
+                <a href="{{ url_for('view_photo', photo_id=photo.id) }}" class="card-img-top photo-img-link">
+                    <img src="{{ url_for('static', filename='uploads/' + photo.room_id|string + '/' + photo.filename) }}" 
+                         class="card-img-top photo-img" 
+                         alt="{{ photo.original_filename }}">
+                </a>
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <small class="text-muted">{{ photo.uploaded_at.strftime('%b %d, %Y') }}</small>
+                        <div>
+                            <a href="{{ url_for('download_photo', photo_id=photo.id) }}" class="btn btn-sm btn-outline-primary">
+                                <i data-feather="download" style="width: 14px; height: 14px;"></i>
+                            </a>
+                        </div>
+                    </div>
+                    {% if photo.description %}
+                    <p class="card-text small mb-2">{{ photo.description|truncate(50) }}</p>
+                    {% endif %}
+                    <div class="photo-tags">
+                        {% for tag in photo.tags %}
+                        <span class="photo-tag">{{ tag.tag_name }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <div class="mb-3">
+                <i data-feather="image" style="width: 64px; height: 64px;" class="text-muted"></i>
+            </div>
+            <h4 class="mb-3">No Photos Yet</h4>
+            <p class="text-muted mb-4">Upload some photos to get started!</p>
+            <a href="{{ url_for('upload_photo', room_id=room.id) }}" class="btn btn-primary">
+                <i data-feather="upload" class="me-1"></i> Upload Photos
+            </a>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Albums Tab -->
+    <div class="tab-pane fade" id="albums" role="tabpanel">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="h5 mb-0">Albums</h3>
+            <a href="{{ url_for('create_album', room_id=room.id) }}" class="btn btn-sm btn-primary">
+                <i data-feather="folder-plus" class="me-1"></i> Create Album
+            </a>
+        </div>
+        
+        {% if albums %}
+        <div class="row row-cols-1 row-cols-md-3 g-4 albums-container">
+            {% for album in albums %}
+            <div class="col">
+                <div class="card album-card h-100 border-0 shadow-sm">
+                    <div class="album-cover">
+                        {% set album_photos = [] %}
+                        {% for photo in photos %}
+                            {% if photo.album_id == album.id %}
+                                {% set album_photos = album_photos + [photo] %}
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if album_photos %}
+                            <img src="{{ url_for('static', filename='uploads/' + room.id|string + '/' + album_photos[0].filename) }}" 
+                                 class="card-img-top" alt="{{ album.name }}">
+                        {% else %}
+                            <div class="bg-dark d-flex align-items-center justify-content-center h-100">
+                                <i data-feather="folder" class="text-muted" style="width: 48px; height: 48px;"></i>
+                            </div>
+                        {% endif %}
+                        
+                        <div class="album-title text-white">{{ album.name }}</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>{{ album_photos|length }} photos</span>
+                            <a href="{{ url_for('view_album', album_id=album.id) }}" class="btn btn-sm btn-outline-primary">
+                                <i data-feather="eye" style="width: 14px; height: 14px;"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <div class="mb-3">
+                <i data-feather="folder" style="width: 64px; height: 64px;" class="text-muted"></i>
+            </div>
+            <h4 class="mb-3">No Albums Yet</h4>
+            <p class="text-muted mb-4">Create an album to organize your photos!</p>
+            <a href="{{ url_for('create_album', room_id=room.id) }}" class="btn btn-primary">
+                <i data-feather="folder-plus" class="me-1"></i> Create Album
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/dropzone@5.9.3/dist/min/dropzone.min.js"></script>
+<script src="{{ url_for('static', filename='js/room.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        feather.replace();
+        
+        // Copy access code button
+        const copyBtn = document.getElementById('copy-code-btn');
+        if (copyBtn) {
+            copyBtn.addEventListener('click', function() {
+                const code = this.getAttribute('data-code');
+                navigator.clipboard.writeText(code)
+                    .then(() => {
+                        this.innerHTML = '<i data-feather="check" class="me-1"></i> Copied!';
+                        feather.replace();
+                        setTimeout(() => {
+                            this.innerHTML = '<i data-feather="copy" class="me-1"></i> Copy Code';
+                            feather.replace();
+                        }, 2000);
+                    })
+                    .catch(err => {
+                        console.error('Could not copy text: ', err);
+                    });
+            });
+        }
+        
+        // Filter photos by tag
+        const tagFilters = document.querySelectorAll('.tag-filter');
+        const clearFiltersBtn = document.querySelector('.clear-filters');
+        const photoCards = document.querySelectorAll('.photo-card');
+        
+        tagFilters.forEach(filter => {
+            filter.addEventListener('click', function() {
+                const tag = this.getAttribute('data-tag');
+                
+                // Toggle active class
+                this.classList.toggle('active');
+                
+                // Get all active filters
+                const activeFilters = Array.from(document.querySelectorAll('.tag-filter.active'))
+                    .map(el => el.getAttribute('data-tag'));
+                
+                // Filter photos
+                photoCards.forEach(card => {
+                    const cardTags = card.getAttribute('data-tags').split(' ').filter(t => t.trim());
+                    
+                    if (activeFilters.length === 0) {
+                        // Show all photos if no filters active
+                        card.style.display = '';
+                    } else {
+                        // Check if card has any of the active filters
+                        const hasTag = activeFilters.some(tag => cardTags.includes(tag));
+                        card.style.display = hasTag ? '' : 'none';
+                    }
+                });
+            });
+        });
+        
+        // Clear all filters
+        if (clearFiltersBtn) {
+            clearFiltersBtn.addEventListener('click', function() {
+                tagFilters.forEach(filter => filter.classList.remove('active'));
+                photoCards.forEach(card => card.style.display = '');
+            });
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard | Photo Sharing App{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3">Your Dashboard</h1>
+    <a href="{{ url_for('create_room') }}" class="btn btn-primary">
+        <i data-feather="plus" class="me-1"></i> Create New Room
+    </a>
+</div>
+
+<!-- Stats Overview -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="stats-card bg-primary bg-opacity-10">
+            <div class="stats-icon mb-2">
+                <i data-feather="folder" class="text-primary"></i>
+            </div>
+            <div class="stats-value">{{ rooms|length }}</div>
+            <div class="stats-label">Total Rooms</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stats-card bg-success bg-opacity-10">
+            <div class="stats-icon mb-2">
+                <i data-feather="image" class="text-success"></i>
+            </div>
+            <div class="stats-value">{{ total_photos }}</div>
+            <div class="stats-label">Total Photos</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stats-card bg-info bg-opacity-10">
+            <div class="stats-icon mb-2">
+                <i data-feather="eye" class="text-info"></i>
+            </div>
+            <div class="stats-value">{{ total_views }}</div>
+            <div class="stats-label">Total Views</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stats-card bg-warning bg-opacity-10">
+            <div class="stats-icon mb-2">
+                <i data-feather="download" class="text-warning"></i>
+            </div>
+            <div class="stats-value">{{ total_downloads }}</div>
+            <div class="stats-label">Downloads</div>
+        </div>
+    </div>
+</div>
+
+<!-- Activity Chart -->
+<div class="card bg-dark border-0 shadow-sm mb-4">
+    <div class="card-header bg-dark">
+        <h5 class="card-title mb-0">
+            <i data-feather="activity" class="me-2"></i> Activity Overview
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="chart-container">
+            <canvas id="activityChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Room List -->
+<div class="card bg-dark border-0 shadow-sm">
+    <div class="card-header bg-dark">
+        <h5 class="card-title mb-0">
+            <i data-feather="folder" class="me-2"></i> Your Rooms
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Room Name</th>
+                        <th>Photos</th>
+                        <th>Access</th>
+                        <th>Activity</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for room in rooms %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3">
+                                    <i data-feather="folder" class="text-primary"></i>
+                                </div>
+                                <div>
+                                    <a href="{{ url_for('room', room_id=room.id) }}" class="text-decoration-none">
+                                        {{ room.name }}
+                                    </a>
+                                    <div class="small text-muted">{{ room.description|truncate(40) }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>{{ room.photos|length }}</td>
+                        <td>
+                            {% if room.is_public %}
+                            <span class="badge bg-success">Public</span>
+                            {% else %}
+                            <span class="badge bg-info">Private</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <i data-feather="eye" class="text-muted me-1" style="width: 14px; height: 14px;"></i>
+                                <span class="me-2">{{ room_views.get(room.id, 0) }}</span>
+                                <i data-feather="download" class="text-muted me-1" style="width: 14px; height: 14px;"></i>
+                                <span>{{ room_downloads.get(room.id, 0) }}</span>
+                            </div>
+                        </td>
+                        <td><span class="text-muted">{{ room.created_at.strftime('%b %d, %Y') }}</span></td>
+                        <td>
+                            <div class="btn-group">
+                                <a href="{{ url_for('room', room_id=room.id) }}" class="btn btn-sm btn-outline-primary">
+                                    <i data-feather="eye" style="width: 14px; height: 14px;"></i>
+                                </a>
+                                <a href="{{ url_for('share_room', room_id=room.id) }}" class="btn btn-sm btn-outline-info">
+                                    <i data-feather="share-2" style="width: 14px; height: 14px;"></i>
+                                </a>
+                                <a href="{{ url_for('room_analytics', room_id=room.id) }}" class="btn btn-sm btn-outline-success">
+                                    <i data-feather="bar-chart-2" style="width: 14px; height: 14px;"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4">
+                            <div class="py-5">
+                                <i data-feather="folder-plus" style="width: 48px; height: 48px;" class="mb-3 text-muted"></i>
+                                <p>You haven't created any rooms yet.</p>
+                                <a href="{{ url_for('create_room') }}" class="btn btn-primary mt-2">Create your first room</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        feather.replace();
+        
+        // Sample data for the chart - this would be replaced with real data from the backend
+        const activityData = {
+            labels: {{ date_labels|tojson }},
+            datasets: [{
+                label: 'Room Views',
+                data: {{ view_counts|tojson }},
+                borderColor: 'rgba(54, 162, 235, 1)',
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                tension: 0.4,
+                fill: true
+            },
+            {
+                label: 'Photo Downloads',
+                data: {{ download_counts|tojson }},
+                borderColor: 'rgba(255, 159, 64, 1)',
+                backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                tension: 0.4,
+                fill: true
+            }]
+        };
+        
+        // Create the chart
+        const ctx = document.getElementById('activityChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: activityData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            color: 'rgba(255, 255, 255, 0.7)'
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

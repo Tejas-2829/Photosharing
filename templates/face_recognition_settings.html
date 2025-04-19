@@ -1,0 +1,326 @@
+{% extends 'base.html' %}
+
+{% block title %}Face Recognition Settings - Photo Sharing{% endblock %}
+
+{% block styles %}
+<style>
+    .settings-card {
+        border-left: 4px solid var(--bs-primary);
+    }
+    .settings-section {
+        margin-bottom: 2rem;
+    }
+    .range-value {
+        display: inline-block;
+        width: 3rem;
+        text-align: center;
+    }
+    .algorithm-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .algorithm-card.selected {
+        border-color: var(--bs-primary);
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+    }
+    .info-icon {
+        cursor: help;
+        color: var(--bs-info);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Face Recognition Settings</h1>
+    
+    <div class="row">
+        <div class="col-md-7">
+            <div class="card shadow-sm settings-card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Configuration</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('face_recognition_settings') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="settings-section">
+                            <h6 class="mb-3">Detection Sensitivity</h6>
+                            
+                            <div class="mb-3">
+                                <label for="min_confidence" class="form-label d-flex justify-content-between">
+                                    <span>Minimum Confidence Threshold <i data-feather="info" class="info-icon" data-bs-toggle="tooltip" title="Faces with confidence below this value will not be recognized"></i></span>
+                                    <span class="range-value" id="min_confidence_value">{{ settings.min_confidence }}</span>
+                                </label>
+                                <input type="range" class="form-range" id="min_confidence" name="min_confidence" min="0.1" max="0.9" step="0.05" value="{{ settings.min_confidence }}">
+                                <div class="d-flex justify-content-between">
+                                    <small class="text-muted">More faces (less accurate)</small>
+                                    <small class="text-muted">Fewer faces (more accurate)</small>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="recognition_tolerance" class="form-label d-flex justify-content-between">
+                                    <span>Recognition Tolerance <i data-feather="info" class="info-icon" data-bs-toggle="tooltip" title="Lower values are more strict in matching faces"></i></span>
+                                    <span class="range-value" id="recognition_tolerance_value">{{ settings.recognition_tolerance }}</span>
+                                </label>
+                                <input type="range" class="form-range" id="recognition_tolerance" name="recognition_tolerance" min="0.1" max="0.9" step="0.05" value="{{ settings.recognition_tolerance }}">
+                                <div class="d-flex justify-content-between">
+                                    <small class="text-muted">More strict matching</small>
+                                    <small class="text-muted">More lenient matching</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="settings-section">
+                            <h6 class="mb-3">Detection Algorithm</h6>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <div class="card algorithm-card {% if settings.detection_algorithm == 'hog' %}selected{% endif %}" id="hog-card">
+                                        <div class="card-body">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="detection_algorithm" id="hog" value="hog" {% if settings.detection_algorithm == 'hog' %}checked{% endif %}>
+                                                <label class="form-check-label" for="hog">
+                                                    <h6 class="mb-1">HOG Algorithm</h6>
+                                                    <p class="text-muted small mb-0">Faster but less accurate. Good for most cases.</p>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card algorithm-card {% if settings.detection_algorithm == 'cnn' %}selected{% endif %}" id="cnn-card">
+                                        <div class="card-body">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="detection_algorithm" id="cnn" value="cnn" {% if settings.detection_algorithm == 'cnn' %}checked{% endif %}>
+                                                <label class="form-check-label" for="cnn">
+                                                    <h6 class="mb-1">CNN Algorithm</h6>
+                                                    <p class="text-muted small mb-0">More accurate but slower. Requires more resources.</p>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="settings-section">
+                            <h6 class="mb-3">Model Size</h6>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <div class="card algorithm-card {% if settings.face_encoding_model == 'small' %}selected{% endif %}" id="small-card">
+                                        <div class="card-body">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="face_encoding_model" id="small" value="small" {% if settings.face_encoding_model == 'small' %}checked{% endif %}>
+                                                <label class="form-check-label" for="small">
+                                                    <h6 class="mb-1">Small Model</h6>
+                                                    <p class="text-muted small mb-0">Faster processing but with lower accuracy.</p>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card algorithm-card {% if settings.face_encoding_model == 'large' %}selected{% endif %}" id="large-card">
+                                        <div class="card-body">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="face_encoding_model" id="large" value="large" {% if settings.face_encoding_model == 'large' %}checked{% endif %}>
+                                                <label class="form-check-label" for="large">
+                                                    <h6 class="mb-1">Large Model</h6>
+                                                    <p class="text-muted small mb-0">More accurate but requires more processing power.</p>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="settings-section">
+                            <h6 class="mb-3">Auto-Categorization</h6>
+                            
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" role="switch" id="auto_categorize" name="auto_categorize" {% if settings.auto_categorize %}checked{% endif %}>
+                                <label class="form-check-label" for="auto_categorize">
+                                    Automatically categorize photos into albums based on detected faces
+                                </label>
+                            </div>
+                            <small class="text-muted">
+                                When enabled, photos will be automatically added to albums based on the faces detected.
+                                This helps organize photos with the same people together.
+                            </small>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary">Save Settings</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-5">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Rooms with Face Recognition</h5>
+                </div>
+                <div class="card-body">
+                    {% if face_enabled_rooms %}
+                        <div class="list-group">
+                            {% for room in face_enabled_rooms %}
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-0">{{ room.name }}</h6>
+                                        <small class="text-muted">{{ room.photos|length }} photos</small>
+                                    </div>
+                                    <div>
+                                        <a href="{{ url_for('process_all_photos', room_id=room.id) }}" class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="tooltip" title="Reprocess all photos with current settings">
+                                            <i data-feather="refresh-cw" class="me-1"></i> Reprocess
+                                        </a>
+                                        <a href="{{ url_for('toggle_face_recognition', room_id=room.id) }}" class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" title="Disable face recognition for this room">
+                                            <i data-feather="toggle-left" class="me-1"></i> Disable
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i data-feather="info" class="me-2"></i>
+                            No rooms with face recognition enabled. You can enable face recognition when creating a room or in room settings.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Help & Tips</h5>
+                </div>
+                <div class="card-body">
+                    <div class="accordion" id="helpAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
+                                    How does face recognition work?
+                                </button>
+                            </h2>
+                            <div id="collapseOne" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                                <div class="accordion-body">
+                                    <p>Face recognition works by detecting faces in photos and comparing their features. The system can:</p>
+                                    <ul>
+                                        <li>Detect faces in uploaded photos</li>
+                                        <li>Match faces with previously tagged faces</li>
+                                        <li>Automatically categorize photos based on who's in them</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                                    How to improve recognition accuracy?
+                                </button>
+                            </h2>
+                            <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                                <div class="accordion-body">
+                                    <p>To improve face recognition accuracy:</p>
+                                    <ol>
+                                        <li>Manually tag faces in a few photos</li>
+                                        <li>Use the "Reprocess" button to apply your tags to other photos</li>
+                                        <li>Adjust the confidence threshold based on your needs</li>
+                                        <li>For better accuracy, use the CNN algorithm if your server supports it</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                                    Best settings for group photos
+                                </button>
+                            </h2>
+                            <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                                <div class="accordion-body">
+                                    <p>For group photos with many faces:</p>
+                                    <ul>
+                                        <li>Lower the confidence threshold (0.4-0.5) to detect more faces</li>
+                                        <li>Use the CNN algorithm if available for better detection in complex scenes</li>
+                                        <li>Increase recognition tolerance if dealing with varied expressions or angles</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/face_recognition.js"></script>
+<script>
+    // Initialize tooltips
+    document.addEventListener('DOMContentLoaded', function() {
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function(tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+        
+        // Update range input values
+        const minConfidenceInput = document.getElementById('min_confidence');
+        const minConfidenceValue = document.getElementById('min_confidence_value');
+        minConfidenceInput.addEventListener('input', function() {
+            minConfidenceValue.textContent = this.value;
+        });
+        
+        const recognitionToleranceInput = document.getElementById('recognition_tolerance');
+        const recognitionToleranceValue = document.getElementById('recognition_tolerance_value');
+        recognitionToleranceInput.addEventListener('input', function() {
+            recognitionToleranceValue.textContent = this.value;
+        });
+        
+        // Handle algorithm card selection
+        const hogCard = document.getElementById('hog-card');
+        const cnnCard = document.getElementById('cnn-card');
+        const hogRadio = document.getElementById('hog');
+        const cnnRadio = document.getElementById('cnn');
+        
+        hogCard.addEventListener('click', function() {
+            hogRadio.checked = true;
+            hogCard.classList.add('selected');
+            cnnCard.classList.remove('selected');
+        });
+        
+        cnnCard.addEventListener('click', function() {
+            cnnRadio.checked = true;
+            cnnCard.classList.add('selected');
+            hogCard.classList.remove('selected');
+        });
+        
+        // Handle model size card selection
+        const smallCard = document.getElementById('small-card');
+        const largeCard = document.getElementById('large-card');
+        const smallRadio = document.getElementById('small');
+        const largeRadio = document.getElementById('large');
+        
+        smallCard.addEventListener('click', function() {
+            smallRadio.checked = true;
+            smallCard.classList.add('selected');
+            largeCard.classList.remove('selected');
+        });
+        
+        largeCard.addEventListener('click', function() {
+            largeRadio.checked = true;
+            largeCard.classList.add('selected');
+            smallCard.classList.remove('selected');
+        });
+    });
+</script>
+{% endblock %}
