@@ -280,76 +280,96 @@ def upload_photo(room_id):
             flash('No file part', 'danger')
             return redirect(request.url)
         
-        file = request.files['photo']
+        # Handle both single and multiple file uploads
+        files = request.files.getlist('photo')
         
-        # If user does not select file, browser also
-        # submit an empty part without filename
-        if file.filename == '':
+        if not files or files[0].filename == '':
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify({'error': 'No selected file'}), 400
-            flash('No selected file', 'danger')
+            flash('No file selected', 'danger')
             return redirect(request.url)
         
-        if file and is_allowed_file(file.filename):
-            # Generate a safe filename
-            original_filename = secure_filename(file.filename)
-            filename = f"{uuid.uuid4().hex}_{original_filename}"
-            
-            # Create upload folder for this room if it doesn't exist
-            room_upload_folder = os.path.join(app.config['UPLOAD_FOLDER'], str(room_id))
-            if not os.path.exists(room_upload_folder):
-                os.makedirs(room_upload_folder)
-            
-            # Save the file
-            file_path = os.path.join(room_upload_folder, filename)
-            file.save(file_path)
-            
-            # Get description from form if available
-            description = request.form.get('description', '')
-            
-            # Create new photo record
-            new_photo = Photo(
-                filename=filename,
-                original_filename=original_filename,
-                user_id=session.get('user_id', 1),  # Default to user 1 if no user logged in
-                room_id=room_id,
-                description=description
-            )
-            
-            try:
-                db.session.add(new_photo)
-                db.session.commit()
-                
-                # Process with face recognition if enabled
-                if room.face_recognition_enabled:
-                    from face_recognition_utils import process_photo_face_recognition
-                    process_photo_face_recognition(new_photo.id, file_path)
-                
-                # Return success response
-                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return jsonify({
-                        'success': True, 
-                        'photo_id': new_photo.id,
+        # Create upload folder for this room if it doesn't exist
+        room_upload_folder = os.path.join(app.config['UPLOAD_FOLDER'], str(room_id))
+        if not os.path.exists(room_upload_folder):
+            os.makedirs(room_upload_folder)
+        
+        # Get description from form if available
+        description = request.form.get('description', '')
+        
+        # Track successful uploads
+        successful_uploads = []
+        failed_uploads = []
+        
+        # Process each file
+        for file in files:
+            if file and is_allowed_file(file.filename):
+                try:
+                    # Generate a safe filename
+                    original_filename = secure_filename(file.filename)
+                    filename = f"{uuid.uuid4().hex}_{original_filename}"
+                    
+                    # Save the file
+                    file_path = os.path.join(room_upload_folder, filename)
+                    file.save(file_path)
+                    
+                    # Create new photo record
+                    new_photo = Photo(
+                        filename=filename,
+                        original_filename=original_filename,
+                        user_id=session.get('user_id', 1),  # Default to user 1 if no user logged in
+                        room_id=room_id,
+                        description=description
+                    )
+                    
+                    db.session.add(new_photo)
+                    db.session.commit()
+                    
+                    # Process with face recognition if enabled
+                    if room.face_recognition_enabled:
+                        from face_recognition_utils import process_photo_face_recognition
+                        process_photo_face_recognition(new_photo.id, file_path)
+                    
+                    successful_uploads.append({
+                        'filename': original_filename,
+                        'id': new_photo.id,
                         'url': url_for('view_photo', photo_id=new_photo.id)
                     })
                 
-                flash('Photo uploaded successfully!', 'success')
-                return redirect(url_for('room', room_id=room_id))
-            
-            except Exception as e:
-                db.session.rollback()
-                logger.error(f"Error uploading photo: {str(e)}")
-                
-                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return jsonify({'error': f'Error uploading photo: {str(e)}'}), 500
-                
-                flash('An error occurred while uploading the photo', 'danger')
-                return redirect(url_for('upload_photo', room_id=room_id))
+                except Exception as e:
+                    db.session.rollback()
+                    logger.error(f"Error uploading photo {file.filename}: {str(e)}")
+                    failed_uploads.append({
+                        'filename': file.filename,
+                        'error': str(e)
+                    })
+            else:
+                failed_uploads.append({
+                    'filename': file.filename,
+                    'error': 'File type not allowed'
+                })
+        
+        # Return appropriate response
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({
+                'success': len(successful_uploads) > 0,
+                'total': len(files),
+                'successful': len(successful_uploads),
+                'failed': len(failed_uploads),
+                'uploads': successful_uploads,
+                'errors': failed_uploads
+            })
+        
+        # Flash appropriate messages for regular form submissions
+        if successful_uploads:
+            if len(failed_uploads) > 0:
+                flash(f'Uploaded {len(successful_uploads)} photos successfully. {len(failed_uploads)} photos failed.', 'info')
+            else:
+                flash(f'Successfully uploaded {len(successful_uploads)} photos!', 'success')
+            return redirect(url_for('room', room_id=room_id))
         else:
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return jsonify({'error': 'File type not allowed'}), 400
-            
-            flash('File type not allowed. Please upload JPG, PNG, or GIF images.', 'danger')
+            flash('No photos were uploaded. Please check file types and try again.', 'danger')
+            return redirect(request.url)
     
     return render_template('upload_photo.html', room=room)
 

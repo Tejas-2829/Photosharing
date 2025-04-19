@@ -4,6 +4,43 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dropzone@5.9.3/dist/min/dropzone.min.css">
+<style>
+    /* Custom dropzone styling */
+    .dropzone {
+        border: 2px dashed var(--bs-primary);
+        border-radius: 5px;
+        background: var(--bs-dark);
+        min-height: 200px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .manual-upload-btn {
+        display: block;
+        margin-top: 20px;
+        width: 100%;
+    }
+    
+    #upload-progress {
+        margin-top: 20px;
+        display: none;
+    }
+    
+    .dropzone .dz-preview .dz-image {
+        border-radius: 5px;
+    }
+    
+    .dropzone .dz-preview.dz-success .dz-success-mark {
+        opacity: 1;
+    }
+    
+    .dropzone .dz-preview.dz-error .dz-error-mark {
+        opacity: 1;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -20,22 +57,56 @@
 <div class="row">
     <div class="col-md-8">
         <div class="card border-0 bg-dark shadow mb-4">
+            <div class="card-header bg-dark">
+                <h5 class="mb-0">Upload Photos</h5>
+            </div>
             <div class="card-body p-4">
-                <form action="{{ url_for('upload_photo', room_id=room.id) }}" class="dropzone" id="photo-dropzone">
+                <!-- Standard File Upload Form -->
+                <form action="{{ url_for('upload_photo', room_id=room.id) }}" method="POST" enctype="multipart/form-data" id="standard-upload-form">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <div class="dz-message" data-dz-message>
-                        <div class="mb-3">
-                            <i data-feather="upload-cloud" style="width: 64px; height: 64px;"></i>
-                        </div>
-                        <h4>Drop files here or click to upload</h4>
-                        <p class="text-muted">Upload photos to share with room members</p>
+                    
+                    <div class="mb-3">
+                        <label for="photo" class="form-label">Select Photos</label>
+                        <input type="file" class="form-control" id="photo" name="photo" accept="image/*" multiple required>
+                        <div class="form-text">You can select multiple photos at once</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description (optional)</label>
+                        <textarea id="description" name="description" class="form-control" rows="2" placeholder="Add a description for all uploaded photos"></textarea>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i data-feather="upload-cloud" class="me-1"></i> Upload Photos
+                        </button>
                     </div>
                 </form>
                 
+                <!-- Progress bar (initially hidden) -->
+                <div id="upload-progress" class="mt-4">
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    <div class="text-center mt-2" id="upload-status">Preparing upload...</div>
+                </div>
+                
+                <!-- Alternate Drag & Drop Area -->
                 <div class="mt-4">
-                    <div class="form-group">
-                        <label for="photo-description" class="form-label">Description (optional)</label>
-                        <textarea id="photo-description" class="form-control" rows="2" placeholder="Add a description for all uploaded photos"></textarea>
+                    <div class="dropzone-title d-flex align-items-center mb-2">
+                        <div class="border-top flex-grow-1 me-3"></div>
+                        <div class="text-muted">or drag and drop</div>
+                        <div class="border-top flex-grow-1 ms-3"></div>
+                    </div>
+                    
+                    <div id="dropzone-upload" class="dropzone">
+                        <div class="dz-message">
+                            <div class="mb-3">
+                                <i data-feather="upload-cloud" style="width: 64px; height: 64px;"></i>
+                            </div>
+                            <h4>Drop files here</h4>
+                            <p class="text-muted">Drag and drop photos to upload</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -124,13 +195,72 @@
     document.addEventListener('DOMContentLoaded', function() {
         feather.replace();
         
-        Dropzone.autoDiscover = false;
+        // Standard form upload handler
+        const uploadForm = document.getElementById('standard-upload-form');
+        const uploadProgress = document.getElementById('upload-progress');
+        const progressBar = uploadProgress.querySelector('.progress-bar');
+        const uploadStatus = document.getElementById('upload-status');
         
-        // Get CSRF token
-        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+        uploadForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const files = document.getElementById('photo').files;
+            
+            if (files.length === 0) {
+                alert('Please select at least one photo to upload');
+                return;
+            }
+            
+            // Show progress
+            uploadProgress.style.display = 'block';
+            
+            // Create AJAX request
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', this.action);
+            
+            // Progress handler
+            xhr.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable) {
+                    const percentComplete = Math.round((e.loaded / e.total) * 100);
+                    progressBar.style.width = percentComplete + '%';
+                    progressBar.setAttribute('aria-valuenow', percentComplete);
+                    uploadStatus.textContent = `Uploading: ${percentComplete}%`;
+                }
+            });
+            
+            // Complete handler
+            xhr.addEventListener('load', function() {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    progressBar.style.width = '100%';
+                    uploadStatus.textContent = 'Upload complete! Redirecting...';
+                    setTimeout(() => {
+                        window.location.href = "{{ url_for('room', room_id=room.id) }}";
+                    }, 1500);
+                } else {
+                    uploadStatus.textContent = 'Upload failed: ' + xhr.statusText;
+                    progressBar.classList.remove('bg-success');
+                    progressBar.classList.add('bg-danger');
+                }
+            });
+            
+            // Error handler
+            xhr.addEventListener('error', function() {
+                uploadStatus.textContent = 'Upload failed: Network error';
+                progressBar.classList.remove('bg-success');
+                progressBar.classList.add('bg-danger');
+            });
+            
+            // Send the form data
+            xhr.send(formData);
+        });
         
         // Initialize Dropzone
-        const myDropzone = new Dropzone("#photo-dropzone", {
+        Dropzone.autoDiscover = false;
+        
+        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+        
+        const myDropzone = new Dropzone("#dropzone-upload", {
             url: "{{ url_for('upload_photo', room_id=room.id) }}",
             paramName: "photo",
             maxFilesize: 16, // MB
@@ -139,13 +269,15 @@
             headers: {
                 'X-CSRF-TOKEN': csrfToken
             },
+            autoProcessQueue: true,
+            parallelUploads: 5,
             init: function() {
                 this.on("sending", function(file, xhr, formData) {
                     // Include CSRF token in the form data
                     formData.append("csrf_token", csrfToken);
                     
                     // Include description if available
-                    const description = document.getElementById('photo-description');
+                    const description = document.getElementById('description');
                     if (description && description.value) {
                         formData.append("description", description.value);
                     }
@@ -166,10 +298,14 @@
                 });
                 
                 this.on("queuecomplete", function() {
-                    // Redirect to room page after all uploads are complete
-                    setTimeout(() => {
-                        window.location.href = "{{ url_for('room', room_id=room.id) }}";
-                    }, 1500);
+                    // Check if any files were successfully uploaded
+                    const successfulUploads = this.getFilesWithStatus(Dropzone.SUCCESS);
+                    if (successfulUploads.length > 0) {
+                        // Redirect to room page after all uploads are complete
+                        setTimeout(() => {
+                            window.location.href = "{{ url_for('room', room_id=room.id) }}";
+                        }, 1500);
+                    }
                 });
             }
         });
